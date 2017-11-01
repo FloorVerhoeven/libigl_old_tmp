@@ -212,6 +212,30 @@ IGL_INLINE void igl::viewer::ViewerData::set_texture(
   dirty |= DIRTY_TEXTURE;
 }
 
+IGL_INLINE void igl::viewer::ViewerData::add_stroke_points(const Eigen::MatrixXd& SP) {
+	stroke_points.resize(0, 0);
+	add_stroke_points(SP);
+}
+
+IGL_INLINE void igl::viewer::ViewerData::set_stroke_points(const Eigen::MatrixXd& SP) {
+	Eigen::MatrixXd SP_temp;
+
+	//If Sp only has 2 columns, pad with a zero column
+	if (SP.cols() == 2) {
+		SP_temp = Eigen::MatrixXd::Zero(SP.rows(), 3);
+		SP_temp.block(0, 0, SP.rows(), 2) = SP;
+	}
+	else {
+		SP_temp = SP;
+	}
+	int lastid = stroke_points.rows();
+	stroke_points.conservativeResize(stroke_points.rows() + SP_temp.rows(), 3);
+	for (unsigned i = 0; i < SP_temp.rows(); ++i) {
+		stroke_points.row(lastid + i) << SP_temp.row(i);
+	}
+	dirty |= DIRTY_STROKE;
+}
+
 IGL_INLINE void igl::viewer::ViewerData::set_points(
   const Eigen::MatrixXd& P,
   const Eigen::MatrixXd& C)
@@ -333,6 +357,8 @@ IGL_INLINE void igl::viewer::ViewerData::clear()
   points                  = Eigen::MatrixXd (0,6);
   labels_positions        = Eigen::MatrixXd (0,3);
   labels_strings.clear();
+
+  stroke_points			  = Eigen::MatrixXd (0,3);
 
   face_based = false;
 }

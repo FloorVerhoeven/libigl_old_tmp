@@ -28,9 +28,11 @@ public:
   GLuint vao_mesh;
   GLuint vao_overlay_lines;
   GLuint vao_overlay_points;
+  GLuint vao_stroke_points;
   OpenGL_shader shader_mesh;
   OpenGL_shader shader_overlay_lines;
   OpenGL_shader shader_overlay_points;
+  OpenGL_shader shader_stroke_points;
 
   GLuint vbo_V; // Vertices of the current mesh (#V x 3)
   GLuint vbo_V_uv; // UV coordinates for the current mesh (#V x 2)
@@ -48,6 +50,9 @@ public:
   GLuint vbo_points_F;        // Indices of the point overlay
   GLuint vbo_points_V;        // Vertices of the point overlay
   GLuint vbo_points_V_colors; // Color values of the point overlay
+  GLuint vbo_stroke_points_F;	  // Indices of the stroke overlay
+  GLuint vbo_stroke_points_V;	  // Vertices of the stroke overlay
+
 
   // Temporary copy of the content of each VBO
   Eigen::MatrixXf V_vbo;
@@ -60,6 +65,7 @@ public:
   Eigen::MatrixXf lines_V_colors_vbo;
   Eigen::MatrixXf points_V_vbo;
   Eigen::MatrixXf points_V_colors_vbo;
+  Eigen::MatrixXf stroke_points_V_vbo;
 
   int tex_u;
   int tex_v;
@@ -68,6 +74,8 @@ public:
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> lines_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> points_F_vbo;
+  Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> stroke_points_F_vbo;
+
 
   // Marks dirty buffers that need to be uploaded to OpenGL
   uint32_t dirty;
@@ -101,6 +109,12 @@ public:
 
   /// Draw the currently buffered point overlay
   IGL_INLINE void draw_overlay_points();
+
+  // Bind the underlying OpenGL buffer objects for subsequent stroke overlay draw calls
+  IGL_INLINE void bind_stroke();
+
+  /// Draw the currently buffered overlay curves
+  IGL_INLINE void draw_stroke();
 
   // Release the OpenGL buffer objects
   IGL_INLINE void free_buffers();
