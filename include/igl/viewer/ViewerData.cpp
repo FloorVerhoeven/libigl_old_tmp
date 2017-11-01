@@ -212,12 +212,12 @@ IGL_INLINE void igl::viewer::ViewerData::set_texture(
   dirty |= DIRTY_TEXTURE;
 }
 
-IGL_INLINE void igl::viewer::ViewerData::add_stroke_points(const Eigen::MatrixXd& SP) {
+IGL_INLINE void igl::viewer::ViewerData::set_stroke_points(const Eigen::MatrixXd& SP) {
 	stroke_points.resize(0, 0);
 	add_stroke_points(SP);
 }
 
-IGL_INLINE void igl::viewer::ViewerData::set_stroke_points(const Eigen::MatrixXd& SP) {
+IGL_INLINE void igl::viewer::ViewerData::add_stroke_points(const Eigen::MatrixXd& SP) {
 	Eigen::MatrixXd SP_temp;
 
 	//If Sp only has 2 columns, pad with a zero column
