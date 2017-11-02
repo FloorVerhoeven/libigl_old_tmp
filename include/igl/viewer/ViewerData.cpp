@@ -292,7 +292,6 @@ IGL_INLINE void igl::viewer::ViewerData::set_edges(
 IGL_INLINE void igl::viewer::ViewerData::add_edges(const Eigen::MatrixXd& P1, const Eigen::MatrixXd& P2, const Eigen::MatrixXd& C)
 {
   Eigen::MatrixXd P1_temp,P2_temp;
-
   // If P1 only has two columns, pad with a column of zeros
   if (P1.cols() == 2)
   {

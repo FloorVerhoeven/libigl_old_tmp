@@ -287,6 +287,7 @@ IGL_INLINE void igl::viewer::OpenGL_state::set_data(const igl::viewer::ViewerDat
 	  stroke_points_F_vbo.resize(1, data.stroke_points.rows());
 	  for (unsigned i = 0; i < data.stroke_points.rows(); ++i) {
 		  stroke_points_V_vbo.col(i) = data.stroke_points.block<1, 3>(i, 0).transpose().cast<float>();
+		  std::cout << stroke_points_V_vbo.col(i) << std::endl << std::endl;
 		  stroke_points_F_vbo(i) = i;
 	  }
   }
@@ -334,7 +335,6 @@ IGL_INLINE void igl::viewer::OpenGL_state::bind_overlay_lines()
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_lines_F);
   if (is_dirty)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*lines_F_vbo.size(), lines_F_vbo.data(), GL_DYNAMIC_DRAW);
-
   dirty &= ~ViewerData::DIRTY_OVERLAY_LINES;
 }
 
