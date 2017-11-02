@@ -584,8 +584,9 @@ namespace viewer
 
   IGL_INLINE bool Viewer::mouse_down(MouseButton button,int modifier)
   {
-	  down = true;
-
+	  if (button == MouseButton::Left) {
+		  down = true;
+	  }
     // Remember mouse location at down even if used by callback/plugin
     down_mouse_x = current_mouse_x;
     down_mouse_y = current_mouse_y;
