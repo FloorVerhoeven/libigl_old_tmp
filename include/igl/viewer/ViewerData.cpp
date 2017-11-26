@@ -48,6 +48,7 @@ IGL_INLINE void igl::viewer::ViewerData::set_mesh(const Eigen::MatrixXd& _V, con
 
   if (V.rows() == 0 && F.rows() == 0)
   {
+
     V = V_temp;
     F = _F;
 
@@ -56,7 +57,6 @@ IGL_INLINE void igl::viewer::ViewerData::set_mesh(const Eigen::MatrixXd& _V, con
       Eigen::Vector3d(GOLD_AMBIENT[0], GOLD_AMBIENT[1], GOLD_AMBIENT[2]),
       Eigen::Vector3d(GOLD_DIFFUSE[0], GOLD_DIFFUSE[1], GOLD_DIFFUSE[2]),
       Eigen::Vector3d(GOLD_SPECULAR[0], GOLD_SPECULAR[1], GOLD_SPECULAR[2]));
-
     grid_texture();
   }
   else
@@ -69,6 +69,7 @@ IGL_INLINE void igl::viewer::ViewerData::set_mesh(const Eigen::MatrixXd& _V, con
     else
       cerr << "ERROR (set_mesh): The new mesh has a different number of vertices/faces. Please clear the mesh before plotting."<<endl;
   }
+
   dirty |= DIRTY_FACE | DIRTY_POSITION;
 }
 
@@ -366,6 +367,7 @@ IGL_INLINE void igl::viewer::ViewerData::compute_normals()
 {
   igl::per_face_normals(V, F, F_normals);
   igl::per_vertex_normals(V, F, F_normals, V_normals);
+
   dirty |= DIRTY_NORMAL;
 }
 
