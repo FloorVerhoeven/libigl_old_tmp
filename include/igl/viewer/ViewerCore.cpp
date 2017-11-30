@@ -452,7 +452,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
   // Default point size / line width
   point_size = 30;
   line_width = 0.5f;
-  stroke_line_width = 0.6f;
+  stroke_line_width = 1.6f;
   is_animating = false;
   animation_max_fps = 30.;
 
