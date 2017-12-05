@@ -148,6 +148,7 @@ public:
   // Point size / line width
   float point_size;
   float line_width;
+  float overlay_line_width;
   float stroke_line_width;
 
   // Animation

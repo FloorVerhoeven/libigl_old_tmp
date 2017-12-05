@@ -249,7 +249,7 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
       glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
       // This must be enabled, otherwise glLineWidth has no effect
       glEnable(GL_LINE_SMOOTH);
-      glLineWidth(line_width);
+      glLineWidth(overlay_line_width);
 
       opengl.draw_overlay_lines();
     }
@@ -452,6 +452,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
   // Default point size / line width
   point_size = 30;
   line_width = 0.5f;
+  overlay_line_width = 1.6f;
   stroke_line_width = 1.6f;
   is_animating = false;
   animation_max_fps = 30.;
