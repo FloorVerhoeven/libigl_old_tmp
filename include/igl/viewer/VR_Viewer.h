@@ -108,22 +108,22 @@ namespace igl
 			std::string mesh_vertex_shader_string =
 				"#version 330 core\n"
 				"layout(location = 0) in vec4 Position;"
-				//"layout(location = 1) in vec3 vertexColor;"
+				"layout(location = 1) in vec3 vertexColor;"
 				"uniform mat4 mvp;"
-				//"out vec3 fragmentColor;"
+				"out vec3 fragmentColor;"
 				"void main(){"
 				"  gl_Position = (mvp * Position); "
-				//"  fragmentColor = vertexColor;"
+				"  fragmentColor = vertexColor;"
 				"}";
 
 			std::string mesh_fragment_shader_string =
 
 				"#version 330 core\n"
-				//"in vec3 fragmentColor;"
+				"in vec3 fragmentColor;"
 				"out vec3 color;"
 				"void main() {"
-				//"color = fragmentColor;"
-				"color = vec3(1,0,0);"
+				"color = fragmentColor;"
+				//"color = vec3(1,0,0);"
 				"}";
 
 		

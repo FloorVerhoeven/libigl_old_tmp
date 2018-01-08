@@ -1,4 +1,4 @@
-#include <igl/readOFF.h>
+#include <igl/read_triangle_mesh.h>
 #include <igl/viewer/VR_Viewer.h>
 #include <igl/viewer/Viewer.h>
 #include "tutorial_shared_path.h"
@@ -11,7 +11,7 @@ Eigen::MatrixXi F;
 int main(int argc, char *argv[])
 {
 	// Load a mesh in OFF format
-	igl::readOFF(TUTORIAL_SHARED_PATH "/2triangles.off", V, F);
+	igl::read_triangle_mesh(TUTORIAL_SHARED_PATH "/arm.obj", V, F);
 
 	// Plot the mesh
 	igl::viewer::VR_Viewer viewervr;

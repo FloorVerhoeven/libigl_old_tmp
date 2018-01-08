@@ -292,12 +292,12 @@ namespace igl
 			glBindRenderbuffer(GL_RENDERBUFFER, 0);
 			glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthBuffer);
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-
 			glGenFramebuffers(1, &_mirrorFbo);
 		}
 
 		IGL_INLINE void VR_Viewer::init_data() {
+
+			
 
 			glGenVertexArrays(1, &VertexArrayID);
 			glBindVertexArray(VertexArrayID);
@@ -348,8 +348,6 @@ namespace igl
 			};
 
 
-
-
 			// Generate 1 buffer, put the resulting identifier in vertexbuffer
 			glGenBuffers(1, &vertexbuffer);
 			// The following commands will talk about our 'vertexbuffer' buffer
@@ -358,8 +356,14 @@ namespace igl
 
 			// Give our vertices to OpenGL.
 			//glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(double)*data.V.size(), data.V.data(), GL_STATIC_DRAW);
-			
+
+			MatrixXd V_T = data.V.transpose();
+			glBufferData(GL_ARRAY_BUFFER, sizeof(double)*data.V.size(), V_T.data(), GL_DYNAMIC_DRAW);
+			/*std::cout << data.V.size() << std::endl;
+			std::cout << data.V << std::endl << std::endl;
+			std::cout << data.F.cols() << std::endl;
+			std::cout << data.F << std::endl;*/
+
 			GLfloat g_color_buffer_data[] = {
 				0.0f,  0.0f, 1.0f,
 				0.0f,  1.0f,  0.0f,
@@ -406,10 +410,12 @@ namespace igl
 
 			};
 
-			/*glGenBuffers(1, &colorbuffer);
+			glGenBuffers(1, &colorbuffer);
 			glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);*/
-
+			//glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW); 
+			glBufferData(GL_ARRAY_BUFFER, sizeof(double)*data.V_material_diffuse.size(), data.V_material_ambient.data(), GL_DYNAMIC_DRAW);
+			
+			std::cout << data.V_material_ambient.size() << std::endl;
 		}
 
 
@@ -463,7 +469,7 @@ namespace igl
 
 				auto& vp = layer.Viewport[eye];
 				glViewport(vp.Pos.x, vp.Pos.y, vp.Size.w, vp.Size.h);
-				OVR::Matrix4f model = OVR::Matrix4f::Translation(-OVR::Vector3f(layer.RenderPose[eye].Position) + OVR::Vector3f(3.0f, 0, -3.0f));
+				OVR::Matrix4f model = OVR::Matrix4f::Translation(-OVR::Vector3f(layer.RenderPose[eye].Position) + OVR::Vector3f(0.0f, 0, -2.0f));
 				OVR::Matrix4f view = OVR::Matrix4f(OVR::Quatf(layer.RenderPose[eye].Orientation).Inverted());
 				OVR::Matrix4f proj = ovrMatrix4f_Projection(eyeRenderDesc[eye].Fov, 0.01f, 1000.0f, ovrProjection_ClipRangeOpenGL);
 				OVR::Matrix4f mvp_ovr = proj * view * model;
@@ -477,25 +483,31 @@ namespace igl
 				glVertexAttribPointer(
 					0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
 					3,                  // size
-					GL_FLOAT,           // type
+					GL_DOUBLE,           // type
 					GL_FALSE,           // normalized?
 					0,                  // stride
 					(void*)0            // array buffer offset
 				);
-				glDrawArrays(GL_TRIANGLES, 0, 3 * 14);
+
+				
+				
+
+				MatrixXi F_T = data.F.transpose();
+
+				glDrawElements(GL_TRIANGLES, data.F.size(), GL_UNSIGNED_INT, F_T.data());
 				glDisableVertexAttribArray(0);
 				// 2nd attribute buffer : colors
-				/*
+				
 				glEnableVertexAttribArray(1);
 				glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
 				glVertexAttribPointer(
 					1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-					3,                                // size
-					GL_FLOAT,                         // type
+					4,                                // size
+					GL_DOUBLE,                         // type
 					GL_FALSE,                         // normalized?
 					0,                                // stride
 					(void*)0                          // array buffer offset
-				);*/
+				);
 			}
 
 			glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
