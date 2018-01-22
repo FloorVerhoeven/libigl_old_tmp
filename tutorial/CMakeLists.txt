@@ -91,6 +91,7 @@ if(TUTORIALS_CHAPTER1)
   add_subdirectory("104_Colors")
   add_subdirectory("105_Overlays")
   add_subdirectory("106_ViewerMenu")
+  add_subdirectory("107_OculusViewer")
 endif()
 
 # Chapter 2
