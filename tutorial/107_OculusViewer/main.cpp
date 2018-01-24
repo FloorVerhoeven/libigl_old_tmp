@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 	igl::viewer::VR_Viewer viewervr;
 	
 	viewervr.data.set_mesh(V, F);
-	
+	//Test floor
 
 
 	viewervr.init();
