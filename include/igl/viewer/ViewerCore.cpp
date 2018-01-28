@@ -249,7 +249,7 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
       glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
       // This must be enabled, otherwise glLineWidth has no effect
       glEnable(GL_LINE_SMOOTH);
-      glLineWidth(line_width);
+      glLineWidth(overlay_line_width);
 
       opengl.draw_overlay_lines();
     }
@@ -283,6 +283,26 @@ IGL_INLINE void igl::viewer::ViewerCore::draw(
     glEnable(GL_DEPTH_TEST);
   }
 
+
+  if (show_strokes){
+	  glEnable(GL_DEPTH_TEST);
+	  
+	  if (data.stroke_points.rows() > 0) {
+		  opengl.bind_stroke();
+		  modeli = opengl.shader_stroke_points.uniform("model");
+		  viewi = opengl.shader_stroke_points.uniform("view");
+		  proji = opengl.shader_stroke_points.uniform("proj");
+
+		  glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
+		  glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
+		  glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+		  // This must be enabled, otherwise glLineWidth has no effect
+		  glEnable(GL_LINE_SMOOTH);
+		  glLineWidth(stroke_line_width);
+
+		  opengl.draw_stroke();
+	  }
+  }
 }
 
 IGL_INLINE void igl::viewer::ViewerCore::draw_buffer(ViewerData& data,
@@ -423,6 +443,7 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
   invert_normals = false;
   show_overlay = true;
   show_overlay_depth = true;
+  show_strokes = true;
   show_vertid = false;
   show_faceid = false;
   show_texture = false;
@@ -431,6 +452,8 @@ IGL_INLINE igl::viewer::ViewerCore::ViewerCore()
   // Default point size / line width
   point_size = 30;
   line_width = 0.5f;
+  overlay_line_width = 1.6f;
+  stroke_line_width = 1.6f;
   is_animating = false;
   animation_max_fps = 30.;
 

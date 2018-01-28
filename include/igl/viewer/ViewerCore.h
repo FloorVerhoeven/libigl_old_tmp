@@ -136,6 +136,7 @@ public:
   // Visualization options
   bool show_overlay;
   bool show_overlay_depth;
+  bool show_strokes;
   bool show_texture;
   bool show_faces;
   bool show_lines;
@@ -147,6 +148,8 @@ public:
   // Point size / line width
   float point_size;
   float line_width;
+  float overlay_line_width;
+  float stroke_line_width;
 
   // Animation
   bool is_animating;
@@ -207,6 +210,7 @@ namespace igl {
 			SERIALIZE_MEMBER(invert_normals);
 			SERIALIZE_MEMBER(show_overlay);
 			SERIALIZE_MEMBER(show_overlay_depth);
+			SERIALIZE_MEMBER(show_strokes);
 			SERIALIZE_MEMBER(show_vertid);
 			SERIALIZE_MEMBER(show_faceid);
 			SERIALIZE_MEMBER(show_texture);

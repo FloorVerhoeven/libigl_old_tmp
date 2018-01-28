@@ -41,7 +41,8 @@ public:
     DIRTY_MESH           = 0x00FF,
     DIRTY_OVERLAY_LINES  = 0x0100,
     DIRTY_OVERLAY_POINTS = 0x0200,
-    DIRTY_ALL            = 0x03FF
+    DIRTY_ALL            = 0x03FF,
+	DIRTY_STROKE		 = 0x0800
   };
 
   // Empy all fields
@@ -96,6 +97,12 @@ public:
     const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
     const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B,
     const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& A);
+
+  //Sets linestrip points given a list of strokepoints
+  // Inputs:
+  // SP #SP by 3 (or 2) list of vertex positions
+  IGL_INLINE void set_stroke_points(const Eigen::MatrixXd& SP);
+  IGL_INLINE void add_stroke_points(const Eigen::MatrixXd& SP);
 
   // Sets points given a list of point vertices. In constrast to `set_points`
   // this will (purposefully) clober existing points.
@@ -180,6 +187,10 @@ public:
   // Texts contains in the i-th position the text of the i-th label
   Eigen::MatrixXd           labels_positions;
   std::vector<std::string>  labels_strings;
+
+  // Points belonging to curves that are drawn on the scene
+  // Every row contains 3 doubles in the following format: P_x, P_y, P_z, with P the position in global coordinates of the point
+  Eigen::MatrixXd stroke_points;
 
   // Marks dirty buffers that need to be uploaded to OpenGL
   uint32_t dirty;

@@ -48,6 +48,7 @@ IGL_INLINE void igl::viewer::ViewerData::set_mesh(const Eigen::MatrixXd& _V, con
 
   if (V.rows() == 0 && F.rows() == 0)
   {
+
     V = V_temp;
     F = _F;
 
@@ -56,7 +57,6 @@ IGL_INLINE void igl::viewer::ViewerData::set_mesh(const Eigen::MatrixXd& _V, con
       Eigen::Vector3d(GOLD_AMBIENT[0], GOLD_AMBIENT[1], GOLD_AMBIENT[2]),
       Eigen::Vector3d(GOLD_DIFFUSE[0], GOLD_DIFFUSE[1], GOLD_DIFFUSE[2]),
       Eigen::Vector3d(GOLD_SPECULAR[0], GOLD_SPECULAR[1], GOLD_SPECULAR[2]));
-
     grid_texture();
   }
   else
@@ -69,6 +69,7 @@ IGL_INLINE void igl::viewer::ViewerData::set_mesh(const Eigen::MatrixXd& _V, con
     else
       cerr << "ERROR (set_mesh): The new mesh has a different number of vertices/faces. Please clear the mesh before plotting."<<endl;
   }
+
   dirty |= DIRTY_FACE | DIRTY_POSITION;
 }
 
@@ -212,6 +213,30 @@ IGL_INLINE void igl::viewer::ViewerData::set_texture(
   dirty |= DIRTY_TEXTURE;
 }
 
+IGL_INLINE void igl::viewer::ViewerData::set_stroke_points(const Eigen::MatrixXd& SP) {
+	stroke_points.resize(0, 0);
+	add_stroke_points(SP);
+}
+
+IGL_INLINE void igl::viewer::ViewerData::add_stroke_points(const Eigen::MatrixXd& SP) {
+	Eigen::MatrixXd SP_temp;
+
+	//If Sp only has 2 columns, pad with a zero column
+	if (SP.cols() == 2) {
+		SP_temp = Eigen::MatrixXd::Zero(SP.rows(), 3);
+		SP_temp.block(0, 0, SP.rows(), 2) = SP;
+	}
+	else {
+		SP_temp = SP;
+	}
+	int lastid = stroke_points.rows();
+	stroke_points.conservativeResize(stroke_points.rows() + SP_temp.rows(), 3);
+	for (unsigned i = 0; i < SP_temp.rows(); ++i) {
+		stroke_points.row(lastid + i) << SP_temp.row(i);
+	}
+	dirty |= DIRTY_STROKE;
+}
+
 IGL_INLINE void igl::viewer::ViewerData::set_points(
   const Eigen::MatrixXd& P,
   const Eigen::MatrixXd& C)
@@ -268,7 +293,6 @@ IGL_INLINE void igl::viewer::ViewerData::set_edges(
 IGL_INLINE void igl::viewer::ViewerData::add_edges(const Eigen::MatrixXd& P1, const Eigen::MatrixXd& P2, const Eigen::MatrixXd& C)
 {
   Eigen::MatrixXd P1_temp,P2_temp;
-
   // If P1 only has two columns, pad with a column of zeros
   if (P1.cols() == 2)
   {
@@ -334,6 +358,8 @@ IGL_INLINE void igl::viewer::ViewerData::clear()
   labels_positions        = Eigen::MatrixXd (0,3);
   labels_strings.clear();
 
+  stroke_points			  = Eigen::MatrixXd (0,3);
+
   face_based = false;
 }
 
@@ -341,6 +367,7 @@ IGL_INLINE void igl::viewer::ViewerData::compute_normals()
 {
   igl::per_face_normals(V, F, F_normals);
   igl::per_vertex_normals(V, F, F_normals, V_normals);
+
   dirty |= DIRTY_NORMAL;
 }
 

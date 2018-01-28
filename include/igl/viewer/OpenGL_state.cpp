@@ -37,6 +37,13 @@ IGL_INLINE void igl::viewer::OpenGL_state::init_buffers()
   glGenBuffers(1, &vbo_points_V);
   glGenBuffers(1, &vbo_points_V_colors);
 
+  // Stroke overlay
+  glGenVertexArrays(1, &vao_stroke_points);
+  glBindVertexArray(vao_stroke_points);
+  glGenBuffers(1, &vbo_stroke_points_F);
+  glGenBuffers(1, &vbo_stroke_points_V);
+
+
   dirty = ViewerData::DIRTY_ALL;
 }
 
@@ -45,6 +52,7 @@ IGL_INLINE void igl::viewer::OpenGL_state::free_buffers()
   glDeleteVertexArrays(1, &vao_mesh);
   glDeleteVertexArrays(1, &vao_overlay_lines);
   glDeleteVertexArrays(1, &vao_overlay_points);
+  glDeleteVertexArrays(1, &vao_stroke_points);
 
   glDeleteBuffers(1, &vbo_V);
   glDeleteBuffers(1, &vbo_V_normals);
@@ -59,6 +67,8 @@ IGL_INLINE void igl::viewer::OpenGL_state::free_buffers()
   glDeleteBuffers(1, &vbo_points_F);
   glDeleteBuffers(1, &vbo_points_V);
   glDeleteBuffers(1, &vbo_points_V_colors);
+  glDeleteBuffers(1, &vbo_stroke_points_V);
+  glDeleteBuffers(1, &vbo_stroke_points_F);
 
   glDeleteTextures(1, &vbo_tex);
 }
@@ -270,6 +280,16 @@ IGL_INLINE void igl::viewer::OpenGL_state::set_data(const igl::viewer::ViewerDat
       points_F_vbo(i) = i;
     }
   }
+
+  if (dirty & ViewerData::DIRTY_STROKE)
+  {
+	  stroke_points_V_vbo.resize(3, data.stroke_points.rows());
+	  stroke_points_F_vbo.resize(1, data.stroke_points.rows());
+	  for (unsigned i = 0; i < data.stroke_points.rows(); ++i) {
+		  stroke_points_V_vbo.col(i) = data.stroke_points.block<1, 3>(i, 0).transpose().cast<float>();
+		  stroke_points_F_vbo(i) = i;
+	  }
+  }
 }
 
 IGL_INLINE void igl::viewer::OpenGL_state::bind_mesh()
@@ -314,7 +334,6 @@ IGL_INLINE void igl::viewer::OpenGL_state::bind_overlay_lines()
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_lines_F);
   if (is_dirty)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*lines_F_vbo.size(), lines_F_vbo.data(), GL_DYNAMIC_DRAW);
-
   dirty &= ~ViewerData::DIRTY_OVERLAY_LINES;
 }
 
@@ -332,6 +351,21 @@ IGL_INLINE void igl::viewer::OpenGL_state::bind_overlay_points()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*points_F_vbo.size(), points_F_vbo.data(), GL_DYNAMIC_DRAW);
 
   dirty &= ~ViewerData::DIRTY_OVERLAY_POINTS;
+}
+
+IGL_INLINE void igl::viewer::OpenGL_state::bind_stroke() {
+	bool is_dirty = dirty & ViewerData::DIRTY_STROKE;
+
+	glBindVertexArray(vao_stroke_points);
+	shader_stroke_points.bind();
+	shader_stroke_points.bindVertexAttribArray("position", vbo_stroke_points_V, stroke_points_V_vbo, is_dirty);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_stroke_points_F);
+	if (is_dirty) {
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*stroke_points_F_vbo.size(), stroke_points_F_vbo.data(), GL_DYNAMIC_DRAW);
+	}
+
+	dirty &= ~ViewerData::DIRTY_STROKE;
 }
 
 IGL_INLINE void igl::viewer::OpenGL_state::draw_mesh(bool solid)
@@ -358,6 +392,11 @@ IGL_INLINE void igl::viewer::OpenGL_state::draw_overlay_lines()
 IGL_INLINE void igl::viewer::OpenGL_state::draw_overlay_points()
 {
   glDrawElements(GL_POINTS, points_F_vbo.cols(), GL_UNSIGNED_INT, 0);
+}
+
+IGL_INLINE void igl::viewer::OpenGL_state::draw_stroke() 
+{
+	glDrawElements(GL_LINE_STRIP, stroke_points_F_vbo.cols(), GL_UNSIGNED_INT, 0);
 }
 
 IGL_INLINE void igl::viewer::OpenGL_state::init()
@@ -450,6 +489,18 @@ IGL_INLINE void igl::viewer::OpenGL_state::init()
   "  color_frag = color;"
   "}";
 
+  std::string stroke_vertex_shader_string =
+	  "#version 150\n"
+	  "uniform mat4 model;"
+	  "uniform mat4 view;"
+	  "uniform mat4 proj;"
+	  "in vec3 position;"
+
+	  "void main()"
+	  "{"
+	  "  gl_Position = proj * view * model * vec4 (position, 1.0);"
+	  "}";
+
   std::string overlay_fragment_shader_string =
   "#version 150\n"
   "in vec3 color_frag;"
@@ -470,6 +521,16 @@ IGL_INLINE void igl::viewer::OpenGL_state::init()
   "  outColor = vec4(color_frag, 1.0);"
   "}";
 
+  std::string overlay_stroke_fragment_shader_string =
+	  "#version 150\n"
+	  "out vec4 outColor;"
+	  "void main()"
+	  "{"
+	  "  outColor = vec4(1.0, 0.0, 0.0, 1.0);"
+	  "}";
+
+
+
   init_buffers();
   shader_mesh.init(mesh_vertex_shader_string,
       mesh_fragment_shader_string, "outColor");
@@ -477,6 +538,8 @@ IGL_INLINE void igl::viewer::OpenGL_state::init()
       overlay_fragment_shader_string, "outColor");
   shader_overlay_points.init(overlay_vertex_shader_string,
       overlay_point_fragment_shader_string, "outColor");
+  shader_stroke_points.init(stroke_vertex_shader_string,
+	  overlay_stroke_fragment_shader_string, "outColor");
 }
 
 IGL_INLINE void igl::viewer::OpenGL_state::free()
@@ -484,5 +547,6 @@ IGL_INLINE void igl::viewer::OpenGL_state::free()
   shader_mesh.free();
   shader_overlay_lines.free();
   shader_overlay_points.free();
+  shader_stroke_points.free();
   free_buffers();
 }
