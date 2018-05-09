@@ -46,8 +46,10 @@ namespace glfw
     enum class MouseButton {Left, Middle, Right};
     enum class MouseMode { None, Rotation, Zoom, Pan, Translation} mouse_mode;
     IGL_INLINE int launch(bool resizable = true,bool fullscreen = false);
+	IGL_INLINE int launch_oculus(bool resizable = true, bool fullscreen = false);
     IGL_INLINE int launch_init(bool resizable = true,bool fullscreen = false);
     IGL_INLINE bool launch_rendering(bool loop = true);
+	IGL_INLINE bool launch_rendering_oculus()
     IGL_INLINE void launch_shut();
     IGL_INLINE void init();
     IGL_INLINE void init_plugins();
@@ -123,6 +125,8 @@ namespace glfw
     GLFWwindow* window;
     // Stores all the viewing options
     ViewerCore core;
+	// Handles all Oculus VR input/output
+	OculusVR oculusVR;
     // List of registered plugins
     std::vector<ViewerPlugin*> plugins;
     // Temporary data stored when the mouse button is pressed

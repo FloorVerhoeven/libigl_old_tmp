@@ -132,6 +132,18 @@ namespace glfw
     return EXIT_SUCCESS;
   }
 
+  IGL_INLINE int Viewer::launch_oculus(bool resizable, bool fullscreen)
+  {
+	  // TODO return values are being ignored...
+	  launch_init(resizable, fullscreen);
+	  oculusVR.init();
+	  core.viewport(2) = oculusVR.eyeTextureWidth();
+	  core.viewport(3) = oculusVR.eyeTextureHeight();
+	  launch_rendering_oculus(true); //Custom rendering because we always render continuously
+	  launch_shut();
+	  return EXIT_SUCCESS;
+  }
+
   IGL_INLINE int  Viewer::launch_init(bool resizable,bool fullscreen)
   {
     glfwSetErrorCallback(glfw_error_callback);
@@ -207,8 +219,6 @@ namespace glfw
     return EXIT_SUCCESS;
   }
 
-
-
   IGL_INLINE bool Viewer::launch_rendering(bool loop)
   {
     // glfwMakeContextCurrent(window);
@@ -240,6 +250,46 @@ namespace glfw
         return !glfwWindowShouldClose(window);
     }
     return EXIT_SUCCESS;
+  }
+
+  IGL_INLINE bool Viewer::launch_rendering_oculus() {
+	  while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
+		  OculusVR.handle_input(*update_screen_while_computing); //TODO: these 2 need to send in as a reference, so that OculusVR can see the most recent updated value (will be set inside the main application)
+		  
+		  if (callback_pre_draw)
+		  {
+			  if (callback_pre_draw(*this))
+			  {
+				  return;
+			  }
+		  }
+		  for (unsigned int i = 0; i<plugins.size(); ++i)
+		  {
+			  if (plugins[i]->pre_draw())
+			  {
+				  return;
+			  }
+		  }
+
+		  OculusVR.draw(data_list, *update_screen_while_computing);
+
+		  if (callback_post_draw)
+		  {
+			  if (callback_post_draw(*this))
+			  {
+				  return;
+			  }
+		  }
+		  for (unsigned int i = 0; i<plugins.size(); ++i)
+		  {
+			  if (plugins[i]->post_draw())
+			  {
+				  break;
+			  }
+		  }
+	  }
+
+	  return EXIT_SUCCESS;
   }
 
   IGL_INLINE void Viewer::launch_shut()
@@ -299,6 +349,11 @@ namespace glfw
     // Per face
     data().set_face_based(false);
 
+	update_screen_while_computing = false;
+	eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
+	touch_dir_lock = std::unique_lock<std::mutex>(mu_touch_dir, std::defer_lock);
+
+
     // C-style callbacks
     callback_init         = nullptr;
     callback_pre_draw     = nullptr;
@@ -309,6 +364,8 @@ namespace glfw
     callback_mouse_scroll = nullptr;
     callback_key_down     = nullptr;
     callback_key_up       = nullptr;
+	callback_button_down  = nullptr;
+
 
     callback_init_data          = nullptr;
     callback_pre_draw_data      = nullptr;
