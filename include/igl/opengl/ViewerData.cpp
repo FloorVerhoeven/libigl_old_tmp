@@ -33,10 +33,14 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   id(-1)
 {
   clear();
+  overlay_lock = std::unique_lock<std::mutex>(mu, std::defer_lock); //Could consider splitting these into a separate mutex for base data and overlay, but coreVR.draw will set the data and then needs both locks --> potential deadlock?
+  base_data_lock = std::unique_lock<std::mutex>(mu, std::defer_lock);
 };
 
 IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
 {
+  std::lock_guard<std::mutex> lock(mu);
+
   if (face_based != newvalue)
   {
     face_based = newvalue;
@@ -49,6 +53,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
     const Eigen::MatrixXd& _V, const Eigen::MatrixXi& _F)
 {
   using namespace std;
+  base_data_lock.lock();
 
   Eigen::MatrixXd V_temp;
 
@@ -85,15 +90,17 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
       cerr << "ERROR (set_mesh): The new mesh has a different number of vertices/faces. Please clear the mesh before plotting."<<endl;
   }
   dirty |= MeshGL::DIRTY_FACE | MeshGL::DIRTY_POSITION;
-}
+  base_data_lock.unlock();
 
+}
+//NOTE: locks for VR not implemented yet.
 IGL_INLINE void igl::opengl::ViewerData::set_vertices(const Eigen::MatrixXd& _V)
 {
   V = _V;
   assert(F.size() == 0 || F.maxCoeff() < V.rows());
   dirty |= MeshGL::DIRTY_POSITION;
 }
-
+//NOTE: locks for VR not implemented yet.
 IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
 {
   using namespace std;
@@ -111,7 +118,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
     cerr << "ERROR (set_normals): Please provide a normal per face, per corner or per vertex."<<endl;
   dirty |= MeshGL::DIRTY_NORMAL;
 }
-
+//NOTE: locks for VR not implemented yet.
 IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
 {
   using namespace std;
@@ -191,7 +198,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
   dirty |= MeshGL::DIRTY_DIFFUSE;
 
 }
-
+//NOTE: locks for VR not implemented yet.
 IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV)
 {
   using namespace std;
@@ -204,7 +211,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV)
     cerr << "ERROR (set_UV): Please provide uv per vertex."<<endl;;
   dirty |= MeshGL::DIRTY_UV;
 }
-
+//NOTE: locks for VR not implemented yet.
 IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV_V, const Eigen::MatrixXi& UV_F)
 {
   set_face_based(true);
@@ -213,7 +220,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV_V, con
   dirty |= MeshGL::DIRTY_UV;
 }
 
-
+//NOTE: locks for VR not implemented yet.
 IGL_INLINE void igl::opengl::ViewerData::set_texture(
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
@@ -225,7 +232,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_texture(
   texture_A = Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>::Constant(R.rows(),R.cols(),255);
   dirty |= MeshGL::DIRTY_TEXTURE;
 }
-
+//NOTE: locks for VR not implemented yet.
 IGL_INLINE void igl::opengl::ViewerData::set_texture(
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
@@ -244,12 +251,17 @@ IGL_INLINE void igl::opengl::ViewerData::set_points(
   const Eigen::MatrixXd& C)
 {
   // clear existing points
+  overlay_lock.lock();
   points.resize(0,0);
   add_points(P,C);
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P,  const Eigen::MatrixXd& C)
 {
+	if (!overlay_lock.owns_lock()) {
+		overlay_lock.lock();
+	}
+
   Eigen::MatrixXd P_temp;
 
   // If P only has two columns, pad with a column of zeros
@@ -267,6 +279,103 @@ IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P,  c
     points.row(lastid+i) << P_temp.row(i), i<C.rows() ? C.row(i) : C.row(C.rows()-1);
 
   dirty |= MeshGL::DIRTY_OVERLAY_POINTS;
+  overlay_lock.unlock();
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_stroke_points(const Eigen::MatrixXd& SP) {
+	overlay_lock.lock();
+	stroke_points.resize(0, 0);
+	add_stroke_points(SP); //Will take care of unlocking
+}
+
+IGL_INLINE void igl::opengl::ViewerData::add_stroke_points(const Eigen::MatrixXd& SP) {
+	if (!overlay_lock.owns_lock()) {
+		overlay_lock.lock();
+	}
+
+	Eigen::MatrixXd SP_temp;
+
+	//If Sp only has 2 columns, pad with a zero column
+	if (SP.cols() == 2) {
+		SP_temp = Eigen::MatrixXd::Zero(SP.rows(), 3);
+		SP_temp.block(0, 0, SP.rows(), 2) = SP;
+	}
+	else {
+		SP_temp = SP;
+	}
+	int lastid = stroke_points.rows();
+	stroke_points.conservativeResize(stroke_points.rows() + SP_temp.rows(), 3);
+	for (unsigned i = 0; i < SP_temp.rows(); ++i) {
+		stroke_points.row(lastid + i) << SP_temp.row(i);
+	}
+	dirty |= MeshGL::DIRTY_STROKE;
+	overlay_lock.unlock();
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_laser_points(const Eigen::MatrixXd& LP) {
+	overlay_lock.lock();
+	laser_points.resize(0, 0);
+	add_laser_points(LP); //Will take care of unlocking
+}
+
+IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd& LP) {
+	if (!overlay_lock.owns_lock()) {
+		overlay_lock.lock();
+	}
+
+	Eigen::MatrixXd LP_temp;
+
+	//If LP only has 2 columns, pad with a zero column
+	if (LP.cols() == 2) {
+		LP_temp = Eigen::MatrixXd::Zero(LP.rows(), 3);
+		LP_temp.block(0, 0, LP.rows(), 2) = LP;
+	}
+	else {
+		LP_temp = LP;
+	}
+	int lastid = laser_points.rows();
+	laser_points.conservativeResize(laser_points.rows() + LP_temp.rows(), 3);
+	for (unsigned i = 0; i < LP_temp.rows(); ++i) {
+		laser_points.row(lastid + i) << LP_temp.row(i);
+	}
+	dirty |= MeshGL::DIRTY_LASER;
+	overlay_lock.unlock();
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_hand_point(
+	const Eigen::MatrixXd& HP,
+	const Eigen::MatrixXd& C)
+{
+	// clear existing points
+	overlay_lock.lock();
+	hand_point.resize(0, 0);
+	add_hand_point(HP, C); //Will take care of unlocking
+}
+
+IGL_INLINE void igl::opengl::ViewerData::add_hand_point(const Eigen::MatrixXd& HP, const Eigen::MatrixXd& C)
+{
+	if (!overlay_lock.owns_lock()) {
+		overlay_lock.lock();
+	}
+
+	Eigen::MatrixXd HP_temp;
+
+	// If P only has two columns, pad with a column of zeros
+	if (HP.cols() == 2)
+	{
+		HP_temp = Eigen::MatrixXd::Zero(HP.rows(), 3);
+		HP_temp.block(0, 0, HP.rows(), 2) = HP;
+	}
+	else
+		HP_temp = HP;
+
+	int lastid = hand_point.rows();
+	hand_point.conservativeResize(hand_point.rows() + HP_temp.rows(), 6);
+	for (unsigned i = 0; i<HP_temp.rows(); ++i)
+		hand_point.row(lastid + i) << HP_temp.row(i), i<C.rows() ? C.row(i) : C.row(C.rows() - 1);
+
+	dirty |= MeshGL::DIRTY_HAND_POINT;
+	overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_edges(
@@ -275,6 +384,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_edges(
   const Eigen::MatrixXd& C)
 {
   using namespace Eigen;
+  overlay_lock.lock();
   lines.resize(E.rows(),9);
   assert(C.cols() == 3);
   for(int e = 0;e<E.rows();e++)
@@ -290,10 +400,12 @@ IGL_INLINE void igl::opengl::ViewerData::set_edges(
     lines.row(e)<< P.row(E(e,0)), P.row(E(e,1)), color;
   }
   dirty |= MeshGL::DIRTY_OVERLAY_LINES;
+  overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_edges(const Eigen::MatrixXd& P1, const Eigen::MatrixXd& P2, const Eigen::MatrixXd& C)
 {
+	overlay_lock.lock();
   Eigen::MatrixXd P1_temp,P2_temp;
 
   // If P1 only has two columns, pad with a column of zeros
@@ -316,10 +428,12 @@ IGL_INLINE void igl::opengl::ViewerData::add_edges(const Eigen::MatrixXd& P1, co
     lines.row(lastid+i) << P1_temp.row(i), P2_temp.row(i), i<C.rows() ? C.row(i) : C.row(C.rows()-1);
 
   dirty |= MeshGL::DIRTY_OVERLAY_LINES;
+  overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P,  const std::string& str)
 {
+	overlay_lock.lock();
   Eigen::RowVectorXd P_temp;
 
   // If P only has two columns, pad with a column of zeros
@@ -335,10 +449,14 @@ IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P,  co
   labels_positions.conservativeResize(lastid+1, 3);
   labels_positions.row(lastid) = P_temp;
   labels_strings.push_back(str);
+  overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::clear()
 {
+
+  std::lock_guard<std::mutex> lock(mu);
+
   V                       = Eigen::MatrixXd (0,3);
   F                       = Eigen::MatrixXi (0,3);
 
@@ -359,6 +477,8 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
   lines                   = Eigen::MatrixXd (0,9);
   points                  = Eigen::MatrixXd (0,6);
   labels_positions        = Eigen::MatrixXd (0,3);
+  stroke_points			  = Eigen::MatrixXd (0,3);
+  laser_points			  = Eigen::MatrixXd (0,3);
   labels_strings.clear();
 
   face_based = false;
@@ -366,9 +486,18 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
 
 IGL_INLINE void igl::opengl::ViewerData::compute_normals()
 {
+	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
+	if (!base_data_lock.owns_lock()) {
+		base_data_lock.lock();
+		unlock_at_end = true; //If we didn't own the lock before entering this function, then also make sure we exit with the lock released
+	}
+
   igl::per_face_normals(V, F, F_normals);
   igl::per_vertex_normals(V, F, F_normals, V_normals);
   dirty |= MeshGL::DIRTY_NORMAL;
+  if (unlock_at_end) {
+	  base_data_lock.unlock();
+  }
 }
 
 IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
@@ -376,6 +505,12 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
   const Eigen::Vector3d& diffuse,
   const Eigen::Vector3d& specular)
 {
+	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
+	if (!base_data_lock.owns_lock()) {
+		base_data_lock.lock();
+		unlock_at_end = true; //If we didn't own the lock before entering this function, then also make sure we exit with the lock released
+	}
+
   Eigen::Vector4d ambient4;
   Eigen::Vector4d diffuse4;
   Eigen::Vector4d specular4;
@@ -385,6 +520,10 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
   specular4 << specular, 1;
 
   uniform_colors(ambient4,diffuse4,specular4);
+
+  if (unlock_at_end) {
+	  base_data_lock.unlock();
+  }
 }
 
 IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
@@ -392,6 +531,12 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
   const Eigen::Vector4d& diffuse,
   const Eigen::Vector4d& specular)
 {
+	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
+	if (!base_data_lock.owns_lock()) {
+		base_data_lock.lock();
+		unlock_at_end = true; //If we didn't own the lock before entering this function, then also make sure we exit with the lock released
+	}
+
   V_material_ambient.resize(V.rows(),4);
   V_material_diffuse.resize(V.rows(),4);
   V_material_specular.resize(V.rows(),4);
@@ -414,10 +559,19 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
     F_material_specular.row(i) = specular;
   }
   dirty |= MeshGL::DIRTY_SPECULAR | MeshGL::DIRTY_DIFFUSE | MeshGL::DIRTY_AMBIENT;
+  if (unlock_at_end) {
+	  base_data_lock.unlock();
+  }
 }
 
 IGL_INLINE void igl::opengl::ViewerData::grid_texture()
 {
+	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
+	if (!base_data_lock.owns_lock()) {
+		base_data_lock.lock();
+		unlock_at_end = true; //If we didn't own the lock before entering this function, then also make sure we exit with the lock released
+	}
+
   // Don't do anything for an empty mesh
   if(V.rows() == 0)
   {
@@ -452,6 +606,9 @@ IGL_INLINE void igl::opengl::ViewerData::grid_texture()
   texture_B = texture_R;
   texture_A = Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>::Constant(texture_R.rows(),texture_R.cols(),255);
   dirty |= MeshGL::DIRTY_TEXTURE;
+  if (unlock_at_end) {
+	  base_data_lock.unlock();
+  }
 }
 
 IGL_INLINE void igl::opengl::ViewerData::updateGL(

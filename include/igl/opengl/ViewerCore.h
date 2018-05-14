@@ -28,6 +28,63 @@ class ViewerCore
 public:
   IGL_INLINE ViewerCore();
 
+  IGL_INLINE ViewerCore& operator = (ViewerCore& other) {
+	  std::lock(mu_model, other.mu_model);
+	  std::lock_guard<std::mutex> self_lock(mu_model, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock(other.mu_model, std::adopt_lock);
+	  model = other.model;
+
+	  std::lock(mu_view, other.mu_view);
+	  std::lock_guard<std::mutex> self_lock2(mu_view, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock2(other.mu_view, std::adopt_lock);
+	  view = other.view;
+
+	  std::lock(mu_proj, other.mu_proj);
+	  std::lock_guard<std::mutex> self_lock3(mu_proj, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock3(other.mu_proj, std::adopt_lock);
+	  model = other.proj;
+
+	  background_color = other.background_color;
+
+	  // Lighting
+	  light_position = other.light_position;
+	  lighting_factor = other.lighting_factor;
+
+	  rotation_type = other.rotation_type;
+	  trackball_angle = other.trackball_angle;
+
+	  // Model viewing parameters
+	  model_zoom = other.model_zoom;
+	  model_translation = other.model_translation;
+
+	  // Model viewing parameters (uv coordinates)
+	  model_zoom_uv = other.model_zoom_uv;
+	  model_translation_uv = other.model_translation_uv;
+
+	  // Camera parameters
+	  camera_zoom = other.camera_zoom;
+	  orthographic = other.orthographic;
+	  camera_eye = other.camera_eye;
+	  camera_up = other.camera_up;
+	  camera_center = other.camera_center;
+	  camera_view_angle = other.camera_view_angle;
+	  camera_dnear = other.camera_dnear;
+	  camera_dfar = other.camera_dfar;
+
+	  depth_test = other.depth_test;
+
+	  // Animation
+	  is_animating = other.is_animating;
+	  animation_max_fps = other.animation_max_fps;
+
+	  // Caches the two-norm between the min/max point of the bounding box
+	  object_scale = other.object_scale;
+
+	  // Viewport size
+	  viewport = other.viewport;
+	  return *this;
+  }
+
   // Initialization
   IGL_INLINE void init();
 
@@ -63,6 +120,12 @@ public:
       const Eigen::MatrixXd& V,
       float & zoom,
       Eigen::Vector3f& shift);
+
+
+	IGL_INLINE Eigen::Matrix4f get_model();
+	IGL_INLINE Eigen::Matrix4f get_view();
+	IGL_INLINE Eigen::Matrix4f get_proj();
+
 
   // ------------------- Drawing functions
 
@@ -139,6 +202,11 @@ public:
   Eigen::Matrix4f view;
   Eigen::Matrix4f model;
   Eigen::Matrix4f proj;
+
+  mutable std::mutex mu_model;
+  mutable std::mutex mu_view;
+  mutable std::mutex mu_proj;
+
   public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
@@ -186,6 +254,11 @@ namespace igl {
       SERIALIZE_MEMBER(view);
       SERIALIZE_MEMBER(model);
       SERIALIZE_MEMBER(proj);
+
+	//  SERIALIZE_MEMBER(mu_model);
+	//  SERIALIZE_MEMBER(mu_view);
+	//  SERIALIZE_MEMBER(mu_proj);
+
     }
 
     template<>

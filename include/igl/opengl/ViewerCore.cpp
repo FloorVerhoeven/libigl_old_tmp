@@ -110,11 +110,13 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   /* Bind and potentially refresh mesh/line/point data */
+  std::unique_lock<std::mutex> lock1(data.mu);
   if (data.dirty)
   {
-    data.updateGL(data, data.invert_normals,data.meshgl);
+    data.updateGL(data, data.invert_normals, data.meshgl);
     data.dirty = MeshGL::DIRTY_NONE;
   }
+  lock1.unlock();
   data.meshgl.bind_mesh();
 
   // Initialize uniform
@@ -122,7 +124,22 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
   if(update_matrices)
   {
+	std::unique_lock<std::mutex> lock2(mu_model);
     model = Eigen::Matrix4f::Identity();
+	// Set model transformation
+	float mat[16];
+	igl::quat_to_mat(trackball_angle.coeffs().data(), mat);
+
+	for (unsigned i = 0; i<4; ++i)
+		for (unsigned j = 0; j<4; ++j)
+			model(i, j) = mat[i + 4 * j];
+
+	// Why not just use Eigen::Transform<double,3,Projective> for model...?
+	model.topLeftCorner(3, 3) *= camera_zoom;
+	model.topLeftCorner(3, 3) *= model_zoom;
+	model.col(3).head(3) += model.topLeftCorner(3, 3)*model_translation;
+	lock2.unlock();
+
     view  = Eigen::Matrix4f::Identity();
     proj  = Eigen::Matrix4f::Identity();
 
@@ -147,18 +164,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
     }
     // end projection
 
-    // Set model transformation
-    float mat[16];
-    igl::quat_to_mat(trackball_angle.coeffs().data(), mat);
-
-    for (unsigned i=0;i<4;++i)
-      for (unsigned j=0;j<4;++j)
-        model(i,j) = mat[i+4*j];
-
-    // Why not just use Eigen::Transform<double,3,Projective> for model...?
-    model.topLeftCorner(3,3)*=camera_zoom;
-    model.topLeftCorner(3,3)*=model_zoom;
-    model.col(3).head(3) += model.topLeftCorner(3,3)*model_translation;
+   
   }
 
   // Send transformations to the GPU
@@ -177,7 +183,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
   GLint texture_factori       = glGetUniformLocation(data.meshgl.shader_mesh,"texture_factor");
 
   glUniform1f(specular_exponenti, data.shininess);
-  Vector3f rev_light = -1.*light_position;
+  Eigen::Vector3f rev_light = -1.*light_position;
   glUniform3fv(light_position_worldi, 1, rev_light.data());
   glUniform1f(lighting_factori, lighting_factor); // enables lighting
   glUniform4f(fixed_colori, 0.0, 0.0, 0.0, 0.0);
@@ -391,4 +397,19 @@ IGL_INLINE void igl::opengl::ViewerCore::init()
 
 IGL_INLINE void igl::opengl::ViewerCore::shut()
 {
+}
+
+IGL_INLINE Eigen::Matrix4f igl::opengl::ViewerCore::get_model() {
+	std::lock_guard<std::mutex> guard1(mu_model);
+	return model;
+}
+
+IGL_INLINE Eigen::Matrix4f igl::opengl::ViewerCore::get_proj() {
+	std::lock_guard<std::mutex> guard1(mu_proj);
+	return proj;
+}
+
+IGL_INLINE Eigen::Matrix4f igl::opengl::ViewerCore::get_view() {
+	std::lock_guard<std::mutex> guard1(mu_view);
+	return view;
 }

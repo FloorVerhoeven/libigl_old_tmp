@@ -37,6 +37,8 @@ namespace igl {
 		IGL_INLINE void OculusVR::init() {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
 			touch_dir_lock = std::unique_lock<std::mutex>(mu_touch_dir, std::defer_lock);
+			callback_button_down = nullptr;
+
 
 			// Create OVR Session Object
 			if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
@@ -111,27 +113,6 @@ namespace igl {
 			ovr_GetEyePoses(session, frame, ovrTrue, HmdToEyePose, EyeRenderPose, &sensorSampleTime);
 		}
 
-		Eigen::Vector3f OculusVR::to_Eigen(OVR::Vector3f& vec) {
-			Eigen::Vector3f result;
-			result << vec[0], vec[1], vec[2];
-			return result;
-		}
-
-		Eigen::Matrix4f OculusVR::to_Eigen(OVR::Matrix4f& mat) {
-			Eigen::Matrix4f result;
-			for (int i = 0; i < 4; i++) {
-				result.row(i) << mat.M[i][0], mat.M[i][1], mat.M[i][2], mat.M[i][3];
-			}
-			return result;
-		}
-
-		IGL_INLINE int OculusVR::eyeTextureWidth() {
-			return eye_buffers[0]->eyeTextureSize.w;
-		}
-		IGL_INLINE int OculusVR::eyeTextureHeight() {
-			return eye_buffers[0]->eyeTextureSize.h;
-		}
-
 		IGL_INLINE void OculusVR::handle_input(std::atomic<bool>& update_screen_while_computing) {
 			ovr_GetSessionStatus(session, &sessionStatus);
 			if (sessionStatus.ShouldRecenter) {
@@ -184,6 +165,7 @@ namespace igl {
 					touch_dir_lock.unlock();
 
 					if ((prev_press == NONE && count == 3 && prev_sent != NONE)) {
+						std::cout << "coming here" << std::endl;
 						update_screen_while_computing = true;
 						std::thread t1(callback_button_down, prev_press, hand_pos);
 						t1.detach();
@@ -200,9 +182,8 @@ namespace igl {
 		}
 
 
-		IGL_INLINE void OculusVR::draw(std::vector<ViewerData> data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing) {
+		IGL_INLINE void OculusVR::draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing) {
 			do {
-
 				/*// Keyboard inputs to adjust player orientation
 				static float Yaw(0.0f);
 
@@ -246,6 +227,49 @@ namespace igl {
 				glfwSwapBuffers(window);
 				glfwPollEvents();
 			} while (update_screen_while_computing);
+		}
+
+		IGL_INLINE OculusVR::OVR_buffer::OVR_buffer(const ovrSession &session, int eyeIdx) {
+			eyeTextureSize = ovr_GetFovTextureSize(session, (ovrEyeType)eyeIdx, hmdDesc.DefaultEyeFov[eyeIdx], 1.0f);
+
+			ovrTextureSwapChainDesc desc = {};
+			desc.Type = ovrTexture_2D;
+			desc.ArraySize = 1;
+			desc.Width = eyeTextureSize.w;
+			desc.Height = eyeTextureSize.h;
+			desc.MipLevels = 1;
+			desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
+			desc.SampleCount = 1;
+			desc.StaticImage = ovrFalse;
+
+			ovrResult result = ovr_CreateTextureSwapChainGL(session, &desc, &swapTextureChain);
+
+			int textureCount = 0;
+			ovr_GetTextureSwapChainLength(session, swapTextureChain, &textureCount);
+
+			for (int j = 0; j < textureCount; ++j)
+			{
+				GLuint chainTexId;
+				ovr_GetTextureSwapChainBufferGL(session, swapTextureChain, j, &chainTexId);
+				glBindTexture(GL_TEXTURE_2D, chainTexId);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			}
+
+			//Create eye buffer to render to
+			glGenFramebuffers(1, &eyeFbo);
+
+			// create depth buffer
+			glGenTextures(1, &depthBuffer);
+			glBindTexture(GL_TEXTURE_2D, depthBuffer);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, eyeTextureSize.w, eyeTextureSize.h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
 		}
 
 
@@ -312,6 +336,27 @@ namespace igl {
 			eye_pos_lock.unlock();
 		}
 
+		Eigen::Vector3f OculusVR::to_Eigen(OVR::Vector3f& vec) {
+			Eigen::Vector3f result;
+			result << vec[0], vec[1], vec[2];
+			return result;
+		}
+
+		Eigen::Matrix4f OculusVR::to_Eigen(OVR::Matrix4f& mat) {
+			Eigen::Matrix4f result;
+			for (int i = 0; i < 4; i++) {
+				result.row(i) << mat.M[i][0], mat.M[i][1], mat.M[i][2], mat.M[i][3];
+			}
+			return result;
+		}
+
+		IGL_INLINE int OculusVR::eyeTextureWidth() {
+			return eye_buffers[0]->eyeTextureSize.w;
+		}
+		IGL_INLINE int OculusVR::eyeTextureHeight() {
+			return eye_buffers[0]->eyeTextureSize.h;
+		}
+
 		IGL_INLINE Eigen::Vector3f OculusVR::get_last_eye_origin() {
 			std::lock_guard<std::mutex> guard1(mu_last_eye_origin);
 			return current_eye_origin;
@@ -320,6 +365,16 @@ namespace igl {
 		IGL_INLINE Eigen::Vector3f OculusVR::get_right_touch_direction() {
 			std::lock_guard<std::mutex> guard1(mu_touch_dir);
 			return right_touch_direction;
+		}
+
+		IGL_INLINE Eigen::Matrix4f OculusVR::get_start_action_view() {
+			std::lock_guard<std::mutex> guard1(mu_start_view);
+			return start_action_view;
+		}
+
+		IGL_INLINE void OculusVR::set_start_action_view(Eigen::Matrix4f new_start_action_view) {
+			std::lock_guard<std::mutex> guard1(mu_start_view);
+			start_action_view = new_start_action_view;
 		}
 
 	}

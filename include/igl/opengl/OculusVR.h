@@ -22,7 +22,7 @@ public:
 			IGL_INLINE void on_render_start();
 			IGL_INLINE void handle_input(std::atomic<bool>& update_screen_while_computing);
 			IGL_INLINE void request_recenter();
-			IGL_INLINE void draw(std::vector<ViewerData> data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing);
+			IGL_INLINE void draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing);
 			IGL_INLINE void submit_frame();
 			IGL_INLINE void blit_mirror();
 
@@ -34,6 +34,8 @@ public:
 
 			IGL_INLINE Eigen::Vector3f get_last_eye_origin();
 			IGL_INLINE Eigen::Vector3f get_right_touch_direction();
+			IGL_INLINE Eigen::Matrix4f get_start_action_view();
+			IGL_INLINE void set_start_action_view(Eigen::Matrix4f new_start_action_view);
 	
 			Eigen::Matrix4f start_action_view;
 			Eigen::Vector3f right_touch_direction;

@@ -15,6 +15,7 @@
 #include <Eigen/Core>
 #include <memory>
 #include <vector>
+#include <mutex>
 
 // Alec: This is a mesh class containing a variety of data types (normals,
 // overlays, material colors, etc.)
@@ -30,6 +31,138 @@ class ViewerData
 {
 public:
   ViewerData();
+
+  ViewerData& operator = (const ViewerData& other) {
+	  std::lock(mu, other.mu);
+	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
+	  //TODO: in case of deadlocks it is possible that all of these locks need to be locked simultaneously in the first line
+	  std::lock(overlay_lock, other.overlay_lock);
+	  std::lock(base_data_lock, other.base_data_lock);
+
+	  V = other.V;
+	  F = other.F;
+	  F_normals = other.F_normals;
+	  V_normals = other.V_normals;
+
+	  F_material_ambient = other.F_material_ambient;
+	  F_material_diffuse = other.F_material_diffuse;
+	  F_material_specular = other.F_material_specular;
+
+	  V_material_ambient = other.V_material_ambient;
+	  V_material_diffuse = other.V_material_diffuse;
+	  V_material_specular = other.V_material_specular;
+
+
+	  V_uv = other.V_uv;
+	  F_uv = other.F_uv;
+
+	  lines = other.lines;
+	  points = other.points;
+	  labels_positions = other.labels_positions;
+	  labels_strings = other.labels_strings;
+
+	  stroke_points = other.stroke_points;
+	  laser_points = other.laser_points;
+	  hand_point = other.hand_point;
+
+	  texture_R = other.texture_R;
+	  texture_G = other.texture_G;
+	  texture_B = other.texture_B; 
+	  texture_A = other.texture_A;
+
+	  dirty = other.dirty;
+	  face_based = other.face_based;
+
+	  show_overlay = other.show_overlay;
+	  show_overlay_depth = other.show_overlay_depth;
+	  show_texture = other.show_texture;
+	  show_faces = other.show_faces;
+	  show_lines = other.show_lines;
+	  show_vertid = other.show_vertid;
+	  show_faceid = other.show_faceid;
+	  invert_normals = other.invert_normals;
+
+	  point_size = other.point_size;
+	  line_width = other.line_width;
+	  line_color = other.line_color;
+
+	  shininess = other.shininess;
+
+	  id = other.id;
+
+
+	  overlay_lock.unlock();
+	  other.overlay_lock.unlock();
+	  base_data_lock.unlock();
+	  other.base_data_lock.unlock();
+  }
+
+  ViewerData(const ViewerData& other) {
+	  std::lock(mu, other.mu);
+	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
+	  //TODO: in case of deadlocks it is possible that all of these locks need to be locked simultaneously in the first line
+	  std::lock(overlay_lock, other.overlay_lock);
+	  std::lock(base_data_lock, other.base_data_lock);
+
+	  V = other.V;
+	  F = other.F;
+	  F_normals = other.F_normals;
+	  V_normals = other.V_normals;
+
+	  F_material_ambient = other.F_material_ambient;
+	  F_material_diffuse = other.F_material_diffuse;
+	  F_material_specular = other.F_material_specular;
+
+	  V_material_ambient = other.V_material_ambient;
+	  V_material_diffuse = other.V_material_diffuse;
+	  V_material_specular = other.V_material_specular;
+
+
+	  V_uv = other.V_uv;
+	  F_uv = other.F_uv;
+
+	  lines = other.lines;
+	  points = other.points;
+	  labels_positions = other.labels_positions;
+	  labels_strings = other.labels_strings;
+
+	  stroke_points = other.stroke_points;
+	  laser_points = other.laser_points;
+	  hand_point = other.hand_point;
+
+	  texture_R = other.texture_R;
+	  texture_G = other.texture_G;
+	  texture_B = other.texture_B;
+	  texture_A = other.texture_A;
+
+	  dirty = other.dirty;
+	  face_based = other.face_based;
+
+	  show_overlay = other.show_overlay;
+	  show_overlay_depth = other.show_overlay_depth;
+	  show_texture = other.show_texture;
+	  show_faces = other.show_faces;
+	  show_lines = other.show_lines;
+	  show_vertid = other.show_vertid;
+	  show_faceid = other.show_faceid;
+	  invert_normals = other.invert_normals;
+
+	  point_size = other.point_size;
+	  line_width = other.line_width;
+	  line_color = other.line_color;
+
+	  shininess = other.shininess;
+
+	  id = other.id;
+
+
+	  overlay_lock.unlock();
+	  other.overlay_lock.unlock();
+	  base_data_lock.unlock();
+	  other.base_data_lock.unlock();
+  }
 
   // Empty all fields
   IGL_INLINE void clear();
@@ -94,6 +227,30 @@ public:
     const Eigen::MatrixXd& P,
     const Eigen::MatrixXd& C);
   IGL_INLINE void add_points(const Eigen::MatrixXd& P,  const Eigen::MatrixXd& C);
+
+  //Sets linestrip points given a list of strokepoints
+  // Inputs:
+  // SP #SP by 3 (or 2) list of vertex positions
+  IGL_INLINE void set_stroke_points(const Eigen::MatrixXd& SP);
+  IGL_INLINE void add_stroke_points(const Eigen::MatrixXd& SP);
+
+  //Sets linestrip points given a list of 2 laser points (start and end)
+  // Inputs:
+  // LP #LP by 3 (or 2) list of vertex positions
+  IGL_INLINE void set_laser_points(const Eigen::MatrixXd& LP);
+  IGL_INLINE void add_laser_points(const Eigen::MatrixXd& LP);
+
+  // Sets hand point given a list of point vertices. In constrast to `add_points`
+  // this will (purposefully) clober existing points.
+  //
+  // Inputs:
+  //   P  #P by 3 list of vertex positions
+  //   C  #P|1 by 3 color(s)
+  IGL_INLINE void set_hand_point(
+	  const Eigen::MatrixXd& P,
+	  const Eigen::MatrixXd& C);
+  IGL_INLINE void add_hand_point(const Eigen::MatrixXd& P, const Eigen::MatrixXd& C);
+
   // Sets edges given a list of edge vertices and edge indices. In constrast
   // to `add_edges` this will (purposefully) clober existing edges.
   //
@@ -124,6 +281,11 @@ public:
 
   // Generates a default grid texture
   IGL_INLINE void grid_texture();
+
+
+  mutable std::mutex mu;
+  mutable std::unique_lock<std::mutex> overlay_lock;
+  mutable std::unique_lock<std::mutex> base_data_lock;
 
   Eigen::MatrixXd V; // Vertices of the current mesh (#V x 3)
   Eigen::MatrixXi F; // Faces of the mesh (#F x 3)
@@ -163,6 +325,14 @@ public:
   // (Every row contains 6 doubles in the following format P_x, P_y, P_z, C_r, C_g, C_b),
   // with P the position in global coordinates of the center of the point, and C the color in floating point rgb format
   Eigen::MatrixXd points;
+
+  // Points belonging to curves that are drawn on the scene
+  // Every row contains 3 doubles in the following format: P_x, P_y, P_z, with P the position in global coordinates of the point
+  Eigen::MatrixXd stroke_points;
+
+  //Start and end points belonging to laser rays that are drawn on the scene
+  Eigen::MatrixXd laser_points;
+  Eigen::MatrixXd hand_point;
 
   // Text labels plotted over the scene
   // Textp contains, in the i-th row, the position in global coordinates where the i-th label should be anchored
@@ -239,6 +409,9 @@ namespace igl
       SERIALIZE_MEMBER(points);
       SERIALIZE_MEMBER(labels_positions);
       SERIALIZE_MEMBER(labels_strings);
+	  SERIALIZE_MEMBER(stroke_points);
+	  SERIALIZE_MEMBER(laser_points);
+	  SERIALIZE_MEMBER(hand_point);
       SERIALIZE_MEMBER(dirty);
       SERIALIZE_MEMBER(face_based);
       SERIALIZE_MEMBER(show_faces);
@@ -254,6 +427,9 @@ namespace igl
       SERIALIZE_MEMBER(line_color);
       SERIALIZE_MEMBER(shininess);
       SERIALIZE_MEMBER(id);
+//	  SERIALIZE_MEMBER(mu);
+	//  SERIALIZE_MEMBER(overlay_lock);
+	  //SERIALIZE_MEMBER(base_data_lock);
     }
     template<>
     inline void serialize(const igl::opengl::ViewerData& obj, std::vector<char>& buffer)

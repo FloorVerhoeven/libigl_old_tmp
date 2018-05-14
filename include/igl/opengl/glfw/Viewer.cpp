@@ -135,8 +135,7 @@ namespace glfw
   IGL_INLINE int Viewer::launch_oculus(bool resizable, bool fullscreen)
   {
 	  // TODO return values are being ignored...
-	  launch_init(resizable, fullscreen);
-	  oculusVR.init();
+	 // launch_init(resizable, fullscreen);
 	  core.viewport(2) = oculusVR.eyeTextureWidth();
 	  core.viewport(3) = oculusVR.eyeTextureHeight();
 	  launch_rendering_oculus(); //Custom rendering because we always render continuously
@@ -323,6 +322,19 @@ namespace glfw
     init_plugins();
   }
 
+  IGL_INLINE void Viewer::init_oculus()
+  {
+	  core.init();
+
+	  if (callback_init)
+		  if (callback_init(*this))
+			  return;
+
+	  init_plugins();
+	  launch_init();
+	  oculusVR.init();
+  }
+
   IGL_INLINE void Viewer::init_plugins()
   {
     // Init all plugins
@@ -368,8 +380,6 @@ namespace glfw
     callback_mouse_scroll = nullptr;
     callback_key_down     = nullptr;
     callback_key_up       = nullptr;
-	callback_button_down  = nullptr;
-
 
     callback_init_data          = nullptr;
     callback_pre_draw_data      = nullptr;

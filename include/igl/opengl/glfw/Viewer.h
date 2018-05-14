@@ -55,6 +55,7 @@ namespace glfw
 	IGL_INLINE bool launch_rendering_oculus();
     IGL_INLINE void launch_shut();
     IGL_INLINE void init();
+	IGL_INLINE void init_oculus();
     IGL_INLINE void init_plugins();
     IGL_INLINE void shutdown_plugins();
     Viewer();
@@ -80,6 +81,7 @@ namespace glfw
     // OpenGL context resize
     IGL_INLINE void resize(int w,int h); // explicitly set window size
     IGL_INLINE void post_resize(int w,int h); // external resize due to user interaction
+
     // Helper functions
     IGL_INLINE void snap_to_canonical_quaternion();
     IGL_INLINE void open_dialog_load_mesh();
@@ -157,6 +159,7 @@ namespace glfw
     std::function<bool(Viewer& viewer, int mouse_x, int mouse_y)> callback_mouse_move;
     std::function<bool(Viewer& viewer, float delta_y)> callback_mouse_scroll;
     std::function<bool(Viewer& viewer, unsigned int key, int modifiers)> callback_key_pressed;
+
     // THESE SHOULD BE DEPRECATED:
     std::function<bool(Viewer& viewer, unsigned int key, int modifiers)> callback_key_down;
     std::function<bool(Viewer& viewer, unsigned int key, int modifiers)> callback_key_up;
