@@ -6,7 +6,7 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 
-#include "Viewer.h"
+#include "igl/opengl/glfw/Viewer.h"
 
 #include <chrono>
 #include <thread>
@@ -139,7 +139,7 @@ namespace glfw
 	  oculusVR.init();
 	  core.viewport(2) = oculusVR.eyeTextureWidth();
 	  core.viewport(3) = oculusVR.eyeTextureHeight();
-	  launch_rendering_oculus(true); //Custom rendering because we always render continuously
+	  launch_rendering_oculus(); //Custom rendering because we always render continuously
 	  launch_shut();
 	  return EXIT_SUCCESS;
   }
@@ -253,31 +253,38 @@ namespace glfw
   }
 
   IGL_INLINE bool Viewer::launch_rendering_oculus() {
+	  bool finish_loop = false;
 	  while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
-		  OculusVR.handle_input(*update_screen_while_computing); //TODO: these 2 need to send in as a reference, so that OculusVR can see the most recent updated value (will be set inside the main application)
+		  oculusVR.handle_input(update_screen_while_computing); //TODO: these 2 need to send in as a reference, so that OculusVR can see the most recent updated value (will be set inside the main application)
 		  
 		  if (callback_pre_draw)
 		  {
 			  if (callback_pre_draw(*this))
 			  {
-				  return;
+				  continue;
 			  }
 		  }
+
 		  for (unsigned int i = 0; i<plugins.size(); ++i)
 		  {
 			  if (plugins[i]->pre_draw())
 			  {
-				  return;
+				  finish_loop = true;
+				  break;
 			  }
 		  }
+		  if (finish_loop) {
+			  finish_loop = false;
+			  continue;
+		  }
 
-		  OculusVR.draw(data_list, *update_screen_while_computing);
+		  oculusVR.draw(data_list, window, core, update_screen_while_computing);
 
 		  if (callback_post_draw)
 		  {
 			  if (callback_post_draw(*this))
 			  {
-				  return;
+				  continue;
 			  }
 		  }
 		  for (unsigned int i = 0; i<plugins.size(); ++i)
@@ -350,9 +357,6 @@ namespace glfw
     data().set_face_based(false);
 
 	update_screen_while_computing = false;
-	eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
-	touch_dir_lock = std::unique_lock<std::mutex>(mu_touch_dir, std::defer_lock);
-
 
     // C-style callbacks
     callback_init         = nullptr;

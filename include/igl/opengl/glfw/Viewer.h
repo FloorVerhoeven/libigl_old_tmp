@@ -16,6 +16,7 @@
 #include "../MeshGL.h"
 #include "../ViewerCore.h"
 #include "../ViewerData.h"
+#include "../OculusVR.h"
 #include "ViewerPlugin.h"
 
 #include <Eigen/Core>
@@ -24,6 +25,8 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <atomic>
+
 
 #define IGL_MOD_SHIFT           0x0001
 #define IGL_MOD_CONTROL         0x0002
@@ -49,7 +52,7 @@ namespace glfw
 	IGL_INLINE int launch_oculus(bool resizable = true, bool fullscreen = false);
     IGL_INLINE int launch_init(bool resizable = true,bool fullscreen = false);
     IGL_INLINE bool launch_rendering(bool loop = true);
-	IGL_INLINE bool launch_rendering_oculus()
+	IGL_INLINE bool launch_rendering_oculus();
     IGL_INLINE void launch_shut();
     IGL_INLINE void init();
     IGL_INLINE void init_plugins();
@@ -58,7 +61,7 @@ namespace glfw
     ~Viewer();
     // Mesh IO
     IGL_INLINE bool load_mesh_from_file(const std::string & mesh_file_name);
-    IGL_INLINE bool   save_mesh_to_file(const std::string & mesh_file_name);
+    IGL_INLINE bool save_mesh_to_file(const std::string & mesh_file_name);
     // Callbacks
     IGL_INLINE bool key_pressed(unsigned int unicode_key,int modifier);
     IGL_INLINE bool key_down(int key,int modifier);
@@ -141,6 +144,8 @@ namespace glfw
     bool hack_never_moved;
     // Keep track of the global position of the scrollwheel
     float scroll_position;
+
+	std::atomic<bool> update_screen_while_computing;
     // C++-style functions
     //
     // Returns **true** if action should be cancelled.
