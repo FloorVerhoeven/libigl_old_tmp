@@ -13,7 +13,7 @@ import pyigl as igl
 
 from shared import TUTORIAL_SHARED_PATH, check_dependencies, print_usage
 
-dependencies = ["glfw"]
+dependencies = ["viewer"]
 check_dependencies(dependencies)
 
 
@@ -46,10 +46,10 @@ def update(viewer):
     elif overlay == 2:  # OVERLAY_OUTPUT
         append_mesh(C_vis, F_vis, V_vis, V, F, igl.eigen.MatrixXd([[0.8, 0.8, 0.8]]))
 
-    viewer.data().clear()
-    viewer.data().set_mesh(V_vis, F_vis)
-    viewer.data().set_colors(C_vis)
-    viewer.data().set_face_based(True)
+    viewer.data.clear()
+    viewer.data.set_mesh(V_vis, F_vis)
+    viewer.data.set_colors(C_vis)
+    viewer.data.set_face_based(True)
 
 
 def key_down(viewer, key, modifier):
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     W = (W - W.minCoeff()) / (W.maxCoeff() - W.minCoeff())
 
     # Plot the generated mesh
-    viewer = igl.glfw.Viewer()
+    viewer = igl.viewer.Viewer()
     update(viewer)
     viewer.callback_key_down = key_down
     viewer.launch()

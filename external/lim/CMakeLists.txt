@@ -24,7 +24,7 @@ add_library(lim STATIC
     UniformLaplacian_LIMSolver3D.cpp)
 
 target_include_directories(lim PRIVATE
-  "../eigen"
+  "../nanogui/ext/eigen"
   "../../include")
 
 if(TARGET igl::core)

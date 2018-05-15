@@ -27,8 +27,8 @@ IGL_INLINE bool igl::ray_mesh_intersect(
   using namespace Eigen;
   using namespace std;
   // Should be but can't be const 
-  Eigen::Vector3d s_d = s.template cast<double>();
-  Eigen::Vector3d dir_d = dir.template cast<double>();
+  Vector3d s_d = s.template cast<double>();
+  Vector3d dir_d = dir.template cast<double>();
   hits.clear();
   // loop over all triangles
   for(int f = 0;f<F.rows();f++)

@@ -14,7 +14,7 @@ import pyigl as igl
 
 from shared import TUTORIAL_SHARED_PATH, check_dependencies
 
-dependencies = ["glfw"]
+dependencies = ["viewer"]
 check_dependencies(dependencies)
 
 
@@ -32,7 +32,7 @@ max_distance = 1
 slice_z = 0.5
 overlay = False
 
-viewer = igl.glfw.Viewer()
+viewer = igl.viewer.Viewer()
 
 
 def append_mesh(C_vis, F_vis, V_vis, V, F, color):
@@ -92,9 +92,9 @@ def update_visualization(viewer):
     if overlay:
         append_mesh(C_vis, F_vis, V_vis, V, F, igl.eigen.MatrixXd([[0.8, 0.8, 0.8]]))
 
-    viewer.data().clear()
-    viewer.data().set_mesh(V_vis, F_vis)
-    viewer.data().set_colors(C_vis)
+    viewer.data.clear()
+    viewer.data.set_mesh(V_vis, F_vis)
+    viewer.data.set_colors(C_vis)
     viewer.core.lighting_factor = overlay
 
 
@@ -138,5 +138,5 @@ igl.per_edge_normals(V, F, igl.PER_EDGE_NORMALS_WEIGHTING_TYPE_UNIFORM, FN, EN, 
 # Plot the generated mesh
 update_visualization(viewer)
 viewer.callback_key_down = key_down
-viewer.data().show_lines = False
+viewer.core.show_lines = False
 viewer.launch()

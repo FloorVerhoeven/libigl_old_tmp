@@ -5,16 +5,18 @@ message(STATUS "CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
 
 ### conditionally compile certain modules depending on libraries found on the system
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../shared/cmake)
-#find_package(CGAL QUIET COMPONENTS Core)
+find_package(CGAL QUIET COMPONENTS Core)
 find_package(MATLAB QUIET)
 find_package(MOSEK)
 
 ### libIGL options: choose between header only and compiled static library
 option(LIBIGL_USE_STATIC_LIBRARY "Use LibIGL as static library" ON)
+option(LIBIGL_WITH_VIEWER      "Use OpenGL viewer"  ON)
+option(LIBIGL_WITH_NANOGUI     "Use Nanogui menu"   OFF)
 option(LIBIGL_WITH_EMBREE      "Use Embree"         ON)
 
 ### libIGL options: choose your dependencies (by default everything is OFF, in this example we need the viewer)
-option(LIBIGL_WITH_CGAL             "Use CGAL"           ON)
+option(LIBIGL_WITH_CGAL             "Use CGAL"           "${CGAL_FOUND}")
 option(LIBIGL_WITH_CORK             "Use CORK"           OFF)
 option(LIBIGL_WITH_MATLAB           "Use Matlab"         "${MATLAB_FOUND}")
 option(LIBIGL_WITH_MOSEK            "Use MOSEK"          "${MOSEK_FOUND}")
@@ -53,10 +55,8 @@ if(TUTORIALS_CHAPTER1)
   add_subdirectory("103_Events")
   add_subdirectory("104_Colors")
   add_subdirectory("105_Overlays")
-  if(LIBIGL_WITH_OPENGL_GLFW_IMGUI)
-    add_subdirectory("106_ViewerMenu")
-  endif()
-  add_subdirectory("107_MultipleMeshes")
+  add_subdirectory("106_ViewerMenu")
+  add_subdirectory("107_OculusViewer")
 endif()
 
 # Chapter 2
@@ -66,7 +66,6 @@ if(TUTORIALS_CHAPTER2)
   add_subdirectory("203_CurvatureDirections")
   add_subdirectory("204_Gradient")
   add_subdirectory("205_Laplacian")
-  add_subdirectory("206_GeodesicDistance")
 endif()
 
 # Chapter 3
@@ -100,7 +99,11 @@ if(TUTORIALS_CHAPTER5)
     add_subdirectory("505_MIQ")
     add_subdirectory("506_FrameField")
   endif()
-  add_subdirectory("507_Planarization")
+  add_subdirectory("507_PolyVectorField")
+  add_subdirectory("508_ConjugateField")
+  add_subdirectory("509_Planarization")
+  add_subdirectory("510_Integrable")
+  add_subdirectory("511_PolyVectorFieldGeneral")
 endif()
 
 # Chapter 6
@@ -144,10 +147,11 @@ if(TUTORIALS_CHAPTER7)
   endif()
   add_subdirectory("707_SweptVolume")
   add_subdirectory("708_Picking")
+  if(LIBIGL_WITH_COMISO)
+    add_subdirectory("709_VectorFieldVisualizer")
+  endif()
   add_subdirectory("710_SLIM")
   add_subdirectory("711_Subdivision")
   add_subdirectory("712_DataSmoothing")
-  add_subdirectory("713_ShapeUp")
 endif()
-
 
