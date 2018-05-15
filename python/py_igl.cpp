@@ -8,7 +8,7 @@
 #include <Eigen/Dense>
 
 #include "python_shared.h"
-#include "modules/py_typedefs.h"
+
 
 #include <igl/AABB.h>
 #include <igl/ARAPEnergyType.h>
@@ -44,6 +44,7 @@
 #include <igl/edge_lengths.h>
 #include <igl/edge_topology.h>
 #include <igl/eigs.h>
+#include <igl/exact_geodesic.h>
 #include <igl/find_cross_field_singularities.h>
 #include <igl/fit_rotations.h>
 #include <igl/floor.h>
@@ -63,7 +64,6 @@
 #include <igl/map_vertices_to_circle.h>
 #include <igl/massmatrix.h>
 #include <igl/min_quad_with_fixed.h>
-#include <igl/n_polyvector.h>
 #include <igl/normalize_row_lengths.h>
 #include <igl/normalize_row_sums.h>
 #include <igl/parula.h>
@@ -86,13 +86,13 @@
 #include <igl/remove_duplicate_vertices.h>
 #include <igl/rotate_vectors.h>
 #include <igl/setdiff.h>
+#include <igl/shape_diameter_function.h>
 #include <igl/signed_distance.h>
 #include <igl/slice.h>
 #include <igl/slice_into.h>
 #include <igl/slice_mask.h>
 #include <igl/slice_tets.h>
 #include <igl/sortrows.h>
-#include <igl/streamlines.h>
 #include <igl/triangle_triangle_adjacency.h>
 #include <igl/unique.h>
 #include <igl/unproject_onto_mesh.h>
@@ -102,6 +102,7 @@
 #include <igl/writeOBJ.h>
 #include <igl/writePLY.h>
 #include <igl/readPLY.h>
+#include <igl/seam_edges.h>
 
 void python_export_igl(py::module &m)
 {
@@ -141,6 +142,7 @@ void python_export_igl(py::module &m)
 #include "py_igl/py_edge_lengths.cpp"
 #include "py_igl/py_edge_topology.cpp"
 #include "py_igl/py_eigs.cpp"
+#include "py_igl/py_exact_geodesic.cpp"
 #include "py_igl/py_find_cross_field_singularities.cpp"
 #include "py_igl/py_fit_rotations.cpp"
 #include "py_igl/py_floor.cpp"
@@ -160,7 +162,6 @@ void python_export_igl(py::module &m)
 #include "py_igl/py_map_vertices_to_circle.cpp"
 #include "py_igl/py_massmatrix.cpp"
 #include "py_igl/py_min_quad_with_fixed.cpp"
-#include "py_igl/py_n_polyvector.cpp"
 #include "py_igl/py_normalize_row_lengths.cpp"
 #include "py_igl/py_normalize_row_sums.cpp"
 #include "py_igl/py_parula.cpp"
@@ -183,13 +184,13 @@ void python_export_igl(py::module &m)
 #include "py_igl/py_remove_duplicate_vertices.cpp"
 #include "py_igl/py_rotate_vectors.cpp"
 #include "py_igl/py_setdiff.cpp"
+#include "py_igl/py_shape_diameter_function.cpp"
 #include "py_igl/py_signed_distance.cpp"
 #include "py_igl/py_slice.cpp"
 #include "py_igl/py_slice_into.cpp"
 #include "py_igl/py_slice_mask.cpp"
 #include "py_igl/py_slice_tets.cpp"
 #include "py_igl/py_sortrows.cpp"
-#include "py_igl/py_streamlines.cpp"
 #include "py_igl/py_triangle_triangle_adjacency.cpp"
 #include "py_igl/py_unique.cpp"
 #include "py_igl/py_unproject_onto_mesh.cpp"
@@ -199,4 +200,5 @@ void python_export_igl(py::module &m)
 #include "py_igl/py_writeOBJ.cpp"
 #include "py_igl/py_writePLY.cpp"
 #include "py_igl/py_readPLY.cpp"
+#include "py_igl/py_seam_edges.cpp"
 }
